@@ -1,0 +1,29 @@
+version: '3'
+services:
+  gateway-api:
+    ports:
+      - "5000:5000"
+    image:
+      willnx/vlab-gateway-api
+    volumes:
+      - ./vlab_gateway_api:/usr/lib/python3.6/site-packages/vlab_gateway_api
+      - /home/willhn/code/vlab/vlab_inf_common/vlab_inf_common:/usr/lib/python3.6/site-packages/vlab_inf_common
+    command: ["python3", "app.py"]
+
+  gateway-worker:
+    image:
+      willnx/vlab-gateway-worker
+    volumes:
+      - ./vlab_gateway_api:/usr/lib/python3.6/site-packages/vlab_gateway_api
+      - /images:/images:ro
+      - /home/willhn/code/vlab/vlab_inf_common/vlab_inf_common:/usr/lib/python3.6/site-packages/vlab_inf_common
+    environment:
+      - INF_VCENTER_SERVER=changeME
+      - INF_VCENTER_USER=changeME
+      - INF_VCENTER_PASSWORD=changeME
+      - INF_VCENTER_DATASTORE=VM-Storage
+      - INF_VCENTER_TOP_LVL_DIR=/vlab
+
+  gateway-broker:
+    image:
+      rabbitmq:3.7-alpine

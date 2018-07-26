@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+"""
+This script will update the ipFire settings file so that the red and green
+interfaces will bind to the correct NICs.
+"""
+import sys
+
+SETTINGS_FILE = '/var/ipfire/ethernet/settings'
+
+
+def get_mac_adders():
+    """Read the MAC addresses from the file system for eth0 and eth1
+
+    :Returns: Tuple
+    """
+    with open('/sys/class/net/eth0/address') as the_file:
+        red = the_file.read().strip()
+    with open('/sys/class/net/eth1/address') as the_file:
+        green = the_file.read().strip()
+    return red, green
+
+
+def get_settings_config():
+    """Read the /var/ipfire/ethernet/settings file, and return it's contents.
+
+    :Returns: Dictionary
+    """
+    with open(SETTINGS_FILE) as the_file:
+        content = the_file.readlines()
+    # remove trailing newline chars
+    content = [x.strip() for x in content]
+    data = []
+    for line in content:
+        data.append(line.split('='))
+    return dict(data)
+
+
+def format_config(config_map):
+    """Convert the dictionary of config values into a block of text
+
+    :Returns: String
+
+    :param config_map: The mapping of config keys to values, created by ``get_settings_config``
+    :type config_map: Dictionary
+    """
+    tmp = []
+    for key, value in config_map.items():
+        tmp.append('%s=%s' % (key, value))
+    return '\n'.join(tmp)
+
+
+def main():
+    """Entry point for script
+
+    :Returns: Integer - the intended exit code
+    """
+    try:
+        red_mac, green_mac = get_mac_adders()
+    except (OSError, IOError) as doh:
+        print('check /sys/class/net: green and red nics might already be defined')
+        return 1
+    # Update the config values
+    config_map = get_settings_config()
+    config_map['RED_MACADDR'] = red_mac
+    config_map['GREEN_MACADDR'] = green_mac
+    formatted_config = format_config(config_map)
+    # write new config
+    with open(SETTINGS_FILE, 'wb') as the_file:
+        the_file.write(formatted_config)
+    return 0
+
+if __name__ == '__main__':
+    sys.exit(main())
