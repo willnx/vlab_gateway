@@ -19,8 +19,8 @@ test: uninstall install
 	cd tests && nosetests -v --with-coverage --cover-package=vlab_gateway_api
 
 images: build
-	sudo docker build -f ApiDockerfile -t willnx/vlab-gateway-api .
-	sudo docker build -f WorkerDockerfile -t willnx/vlab-gateway-worker .
+	docker build -f ApiDockerfile -t willnx/vlab-gateway-api .
+	docker build -f WorkerDockerfile -t willnx/vlab-gateway-worker .
 
 up:
 	docker-compose -p vlabGateway up --abort-on-container-exit
