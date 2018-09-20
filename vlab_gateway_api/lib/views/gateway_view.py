@@ -35,7 +35,7 @@ class GatewayView(TaskView):
                     ]
                   }
 
-    @requires(verify=False)
+    @requires(verify=False, version=(1,2))
     @describe(post=POST_SCHEMA, delete={}, get_args={})
     def get(self, *args, **kwargs):
         """Obtain a info about the gateways a user owns"""
@@ -45,7 +45,7 @@ class GatewayView(TaskView):
         resp['content'] = {'task-id': task.id}
         return ujson.dumps(resp), 200
 
-    @requires(verify=False) # XXX remove verify=False before commit
+    @requires(verify=False, version=(1,2)) # XXX remove verify=False before commit
     @validate_input(schema=POST_SCHEMA)
     def post(self, *args, **kwargs):
         """Create a new gateway"""
@@ -57,7 +57,7 @@ class GatewayView(TaskView):
         resp['content'] = {'task-id': task.id}
         return ujson.dumps(resp), 200
 
-    @requires(verify=False) # XXX remove verify=False before commit
+    @requires(verify=False, version=(1,2)) # XXX remove verify=False before commit
     def delete(self, *args, **kwargs):
         """Delete a gateway"""
         username = kwargs['token']['username']
