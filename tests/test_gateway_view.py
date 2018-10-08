@@ -44,6 +44,16 @@ class TestGatewayView(unittest.TestCase):
 
         self.assertEqual(task_id, expected)
 
+    def test_get_task_link(self):
+        """GatewayView - GET on /api/1/inf/gateway sets the Link header"""
+        resp = self.app.get('/api/1/inf/gateway',
+                            headers={'X-Auth': self.token})
+
+        task_id = resp.headers['Link']
+        expected = '<https://localhost/api/1/inf/gateway/task/asdf-asdf-asdf>; rel=status'
+
+        self.assertEqual(task_id, expected)
+
     def test_post_task(self):
         """GatewayView - POST on /api/1/inf/gateway returns a task-id"""
         resp = self.app.post('/api/1/inf/gateway',
@@ -52,6 +62,17 @@ class TestGatewayView(unittest.TestCase):
 
         task_id = resp.json['content']['task-id']
         expected = 'asdf-asdf-asdf'
+
+        self.assertEqual(task_id, expected)
+
+    def test_post_task_link(self):
+        """GatewayView - POST on /api/1/inf/gateway sets the Link header"""
+        resp = self.app.post('/api/1/inf/gateway',
+                            headers={'X-Auth': self.token},
+                            json={'wan': "someWAN", 'lan': "someLAN"})
+
+        task_id = resp.headers['Link']
+        expected = '<https://localhost/api/1/inf/gateway/task/asdf-asdf-asdf>; rel=status'
 
         self.assertEqual(task_id, expected)
 
@@ -65,6 +86,15 @@ class TestGatewayView(unittest.TestCase):
 
         self.assertEqual(task_id, expected)
 
+    def test_delete_task_link(self):
+        """GatewayView - DELETE on /api/1/inf/gateway sets the Link header"""
+        resp = self.app.delete('/api/1/inf/gateway',
+                            headers={'X-Auth': self.token})
+
+        task_id = resp.headers['Link']
+        expected = '<https://localhost/api/1/inf/gateway/task/asdf-asdf-asdf>; rel=status'
+
+        self.assertEqual(task_id, expected)
 
 if __name__ == '__main__':
     unittest.main()
