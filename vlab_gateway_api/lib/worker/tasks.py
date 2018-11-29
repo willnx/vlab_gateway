@@ -3,19 +3,17 @@
 Entry point logic for available backend worker tasks
 """
 from celery import Celery
-from celery.utils.log import get_task_logger
+from vlab_api_common import get_task_logger
 
 from vlab_gateway_api.lib import const
 from vlab_gateway_api.lib.worker import vmware
 
 
 app = Celery('gateway', backend='rpc://', broker=const.VLAB_MESSAGE_BROKER)
-logger = get_task_logger(__name__)
-logger.setLevel(const.VLAB_GATEWAY_LOG_LEVEL.upper())
 
 
-@app.task(name='gateway.show')
-def show(username):
+@app.task(name='gateway.show', bind=True)
+def show(self, username, txn_id):
     """Obtain basic information about a user's default gateway
 
     :Returns: Dictionary
@@ -23,6 +21,7 @@ def show(username):
     :param username: The name of the user who wants info about their default gateway
     :type username: String
     """
+    logger = get_task_logger(txn_id=txn_id, task_id=self.request.id, loglevel=const.VLAB_GATEWAY_LOG_LEVEL.upper())
     resp = {'content' : {}, 'error': None, 'params': {}}
     try:
         logger.info('Task starting')
@@ -36,8 +35,8 @@ def show(username):
     return resp
 
 
-@app.task(name='gateway.create')
-def create(username, wan, lan):
+@app.task(name='gateway.create', bind=True)
+def create(self, username, wan, lan, txn_id):
     """Deploy a new default gateway
 
     :Returns: Dictionary
@@ -48,6 +47,7 @@ def create(username, wan, lan):
     :param network: The name of the network that the jumpbox connects to.
     :type network: String
     """
+    logger = get_task_logger(txn_id=txn_id, task_id=self.request.id, loglevel=const.VLAB_GATEWAY_LOG_LEVEL.upper())
     resp = {'content' : {}, 'error': None, 'params': {}}
     try:
         logger.info('Task starting')
@@ -59,8 +59,8 @@ def create(username, wan, lan):
     return resp
 
 
-@app.task(name='gateway.delete')
-def delete(username):
+@app.task(name='gateway.delete', bind=True)
+def delete(self, username, txn_id):
     """Destroy the default gateway
 
     :Returns: Dictionary
@@ -68,6 +68,7 @@ def delete(username):
     :param username: The name of the user who wants to create a new default gateway
     :type username: String
     """
+    logger = get_task_logger(txn_id=txn_id, task_id=self.request.id, loglevel=const.VLAB_GATEWAY_LOG_LEVEL.upper())
     resp = {'content' : {}, 'error': None, 'params': {}}
     try:
         logger.info('Task starting')

@@ -3,6 +3,8 @@
 import time
 import random
 import os.path
+
+import ujson
 from celery.utils.log import get_task_logger
 from vlab_inf_common.vmware import vCenter, Ova, vim, virtual_machine, consume_task
 
@@ -60,7 +62,7 @@ def create_gateway(username, wan, lan, image_name='defaultgateway-IPAM.ova'):
                                                      username, COMPONENT_NAME, logger)
         finally:
             ova.close()
-        _setup_gateway(vcenter, the_vm, username)
+        _setup_gateway(vcenter, the_vm, username, gateway_version='1.0.0')
         return virtual_machine.get_info(vcenter, the_vm)
 
 
@@ -128,7 +130,7 @@ def _create_network_map(vcenter, ova, wan, lan):
     return network_map
 
 
-def _setup_gateway(vcenter, the_vm, username):
+def _setup_gateway(vcenter, the_vm, username, gateway_version):
     """Initialize the new gateway for the user
 
     :Returns: None
@@ -189,6 +191,11 @@ def _setup_gateway(vcenter, the_vm, username):
 
 
     spec = vim.vm.ConfigSpec()
-    spec.annotation = '\"ipam=1.0\"'
+    spec_info = {'component': 'defaultGateway',
+                 'created': time.time(),
+                 'version': gateway_version,
+                 'configured': True,
+                 'generation': 1}
+    spec.annotation = ujson.dumps(spec_info)
     task = the_vm.ReconfigVM_Task(spec)
     consume_task(task)
