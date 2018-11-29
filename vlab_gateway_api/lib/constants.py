@@ -18,6 +18,11 @@ DEFINED = OrderedDict([
             ('VLAB_MESSAGE_BROKER', environ.get('VLAB_MESSAGE_BROKER', 'gateway-broker')),
             ('VLAB_GATEWAY_IMAGES_DIR', environ.get('VLAB_GATEWAY_IMAGES_DIR', '/images')),
             ('INF_VCENTER_TOP_LVL_DIR', environ.get('INF_VCENTER_TOP_LVL_DIR', '/vlab')),
+            ('VLAB_DOMAIN', environ.get('VLAB_DOMAIN', 'local')),
+            ('VLAB_IPAM_ADMIN', 'administrator'),
+            ('VLAB_IPAM_ADMIN_PW', environ.get('VLAB_IPAM_ADMIN_PW', "I'm a little tea pot")),
+            ('VLAB_IPAM_KEY', environ.get('VLAB_IPAM_KEY', 'bGfKJfkoAPcvG3dORQuWCBXbGLtl6L9_iSfaKfaLEHY=')),
+            ('VLAB_IPAM_BROKER', environ.get('VLAB_IPAM_BROKER', 'localhost:9092')),
           ])
 
 Constants = namedtuple('Constants', list(DEFINED.keys()))

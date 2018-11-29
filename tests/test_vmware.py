@@ -133,30 +133,20 @@ class TestVMware(unittest.TestCase):
                                         wan='someWAN',
                                         lan='someLAN')
 
-    @patch.object(vmware.time, 'sleep') # so unittests run faster
-    @patch.object(vmware.virtual_machine, 'run_command')
-    def test_setup_gateway_mac_failure(self, fake_run_command, fake_sleep):
-        """``_setup_gateway`` Raises RuntimeError if the update_mac_adders script fails"""
-        fake_vcenter = MagicMock()
-        fake_vm = MagicMock()
-
-        with self.assertRaises(RuntimeError):
-            vmware._setup_gateway(vcenter=fake_vcenter, the_vm=fake_vm)
-
     @patch.object(vmware, 'consume_task')
     @patch.object(vmware.time, 'sleep') # so unittests run faster
     @patch.object(vmware.virtual_machine, 'run_command')
-    def test_setup_gateway_reboot_failure(self, fake_run_command, fake_sleep, fake_consume_task):
-        """``_setup_gateway`` Raises RuntimeError if rebooting the VM fails"""
+    def test_setup_gateway_returns_none(self, fake_run_command, fake_sleep, fake_consume_task):
+        """``_setup_gateway`` returns None"""
         fake_vcenter = MagicMock()
         fake_vm = MagicMock()
         fake_result = MagicMock()
-        fake_result.exitCode = 0
+        fake_result.exitCode = 1
         fake_run_command.side_effect = [fake_result, MagicMock(), MagicMock(),  MagicMock()]
 
-        with self.assertRaises(RuntimeError):
-            vmware._setup_gateway(vcenter=fake_vcenter, the_vm=fake_vm)
+        result = vmware._setup_gateway(vcenter=fake_vcenter, the_vm=fake_vm, username='jane')
 
+        self.assertTrue(result is None)
 
 if __name__ == '__main__':
     unittest.main()

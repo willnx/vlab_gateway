@@ -34,7 +34,7 @@ def show_gateway(username):
     return info
 
 
-def create_gateway(username, wan, lan, image_name='defaultgateway-ipfire.ova'):
+def create_gateway(username, wan, lan, image_name='defaultgateway-IPAM.ova'):
     """Deploy the defaultGateway from an OVA
 
     :Returns: None
@@ -60,7 +60,7 @@ def create_gateway(username, wan, lan, image_name='defaultgateway-ipfire.ova'):
                                                      username, COMPONENT_NAME, logger)
         finally:
             ova.close()
-        _setup_gateway(vcenter, the_vm)
+        _setup_gateway(vcenter, the_vm, username)
         return virtual_machine.get_info(vcenter, the_vm)
 
 
@@ -128,7 +128,7 @@ def _create_network_map(vcenter, ova, wan, lan):
     return network_map
 
 
-def _setup_gateway(vcenter, the_vm):
+def _setup_gateway(vcenter, the_vm, username):
     """Initialize the new gateway for the user
 
     :Returns: None
@@ -139,50 +139,56 @@ def _setup_gateway(vcenter, the_vm):
     :param the_vm: The new gateway
     :type the_vm: vim.VirtualMachine
     """
-    user = 'root'
-    password = 'a'
-    # ipfire statically defines red0 and green0 to MAC address
-    # but our newly deployed OVA will nave different MAC address
-    logger.debug('Updating MAC addresses for default gateway interfaces')
-    result = virtual_machine.run_command(vcenter,
-                                         the_vm,
-                                         '/usr/local/bin/update_mac_adders',
-                                          user,
-                                          password)
-    if result.exitCode:
-        error = 'Failed to configure MAC addresses in default gateway'
-        logger.error(error, result)
-        raise RuntimeError(error)
+    cmd1 = '/usr/bin/sudo'
+    the_hostname = '{}.vlab.{}'.format(username, const.VLAB_DOMAIN)
+    args1 = '/usr/bin/hostnamectl set-hostname {}'.format(the_hostname)
+    result1 = virtual_machine.run_command(vcenter,
+                                          the_vm,
+                                          cmd1,
+                                          user=const.VLAB_IPAM_ADMIN,
+                                          password=const.VLAB_IPAM_ADMIN_PW,
+                                          arguments=args1)
+    if result1.exitCode:
+        logger.error('Failed to set hostname to {}'.format(the_hostname))
 
-    logger.debug('Rebooting VM to apply MAC changes')
-    result = virtual_machine.run_command(vcenter, the_vm, '/sbin/reboot', user, password)
-    if result.exitCode:
-        error = 'Failed to gracefully reboot default gateway'
-        logger.error(error, result)
-        raise RuntimeError(error)
-    # give the VM a moment to power off
-    logger.debug('Waiting for VM to shutdown')
-    time.sleep(60)
+    # Fix the env var for the log_sender
+    cmd2 = '/usr/bin/sudo'
+    args2 = "/bin/sed -i -e 's/VLAB_LOG_TARGET=localhost:9092/VLAB_LOG_TARGET={}'".format(const.VLAB_IPAM_BROKER)
+    result2 = virtual_machine.run_command(vcenter,
+                                          the_vm,
+                                          cmd2,
+                                          user=const.VLAB_IPAM_ADMIN,
+                                          password=const.VLAB_IPAM_ADMIN_PW,
+                                          arguments=args2)
+    if result2.exitCode:
+        logger.error('Failed to set IPAM log-sender address')
 
-    # Block until the gateway is usable; DHCP can take several minutes
-    result = virtual_machine.run_command(vcenter,
-                                         the_vm,
-                                         '/bin/ls',
-                                         user, password, arguments='/var/ipfire/dhcpc/dhcpc-done')
-    logger.debug('Testing for sentinel file')
-    for _ in range(600):
-        if result.exitCode:
-            time.sleep(1)
-            result = virtual_machine.run_command(vcenter,
-                                                 the_vm,
-                                                 '/bin/ls',
-                                                 user, password, arguments='/var/ipfire/dhcpc/dhcpc-done')
-        else:
-            break
-    else:
-        raise RuntimeError('Gateway never became ready')
-    logger.debug('Sentinel file found; assuming gateway OK', result)
+    # Set the encryption key for log_sender
+    cmd3 = 'usr/bin/sudo'
+    args3 = "/bin/echo '{}' > /etc/vlab/log_sender.key".format(const.VLAB_IPAM_KEY)
+    result3 = virtual_machine.run_command(vcenter,
+                                          the_vm,
+                                          cmd2,
+                                          user=const.VLAB_IPAM_ADMIN,
+                                          password=const.VLAB_IPAM_ADMIN_PW,
+                                          arguments=args2)
+    if result3.exitCode:
+        logger.error('Failed to set IPAM encryption key')
+
+    # Restart log sender; should work now
+    cmd4= '/usr/bin/sudo'
+    args4 = '/bin/systemctl restart vlab-log-sender'
+    result4 = virtual_machine.run_command(vcenter,
+                                          the_vm,
+                                          cmd2,
+                                          user=const.VLAB_IPAM_ADMIN,
+                                          password=const.VLAB_IPAM_ADMIN_PW,
+                                          arguments=args2)
+    if result4.exitCode:
+        logger.error('Failed to restart vlab-log-sender')
+
+
     spec = vim.vm.ConfigSpec()
-    spec.annotation = 'ipfire=2.19'
+    spec.annotation = '\"ipam=1.0\"'
     task = the_vm.ReconfigVM_Task(spec)
     consume_task(task)
