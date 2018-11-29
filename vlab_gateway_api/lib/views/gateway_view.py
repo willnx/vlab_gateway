@@ -41,14 +41,15 @@ class GatewayView(TaskView):
         """Obtain a info about the gateways a user owns"""
         username = kwargs['token']['username']
         resp_data = {'user' : username}
-        task = current_app.celery_app.send_task('gateway.show', [username])
+        txn_id = request.headers.get('X-REQUEST-ID', 'noId')
+        task = current_app.celery_app.send_task('gateway.show', [username, txn_id])
         resp_data['content'] = {'task-id': task.id}
         resp = Response(ujson.dumps(resp_data))
         resp.status_code = 202
         resp.headers.add('Link', '<{0}{1}/task/{2}>; rel=status'.format(const.VLAB_URL, self.route_base, task.id))
         return resp
 
-    @requires(verify=False, version=2) # XXX remove verify=False before commit
+    @requires(verify=const.VLAB_VERIFY_TOKEN, version=2)
     @validate_input(schema=POST_SCHEMA)
     def post(self, *args, **kwargs):
         """Create a new gateway"""
@@ -56,19 +57,21 @@ class GatewayView(TaskView):
         resp_data = {'user' : username}
         wan = kwargs['body']['wan']
         lan = kwargs['body']['lan']
-        task = current_app.celery_app.send_task('gateway.create', [username, wan, lan])
+        txn_id = request.headers.get('X-REQUEST-ID', 'noId')
+        task = current_app.celery_app.send_task('gateway.create', [username, wan, lan, txn_id])
         resp_data['content'] = {'task-id': task.id}
         resp = Response(ujson.dumps(resp_data))
         resp.status_code = 202
         resp.headers.add('Link', '<{0}{1}/task/{2}>; rel=status'.format(const.VLAB_URL, self.route_base, task.id))
         return resp
 
-    @requires(verify=False, version=2)# XXX remove verify=False before commit
+    @requires(verify=const.VLAB_VERIFY_TOKEN, version=2)
     def delete(self, *args, **kwargs):
         """Delete a gateway"""
         username = kwargs['token']['username']
         resp_data = {'user' : username}
-        task = current_app.celery_app.send_task('gateway.delete', [username])
+        txn_id = request.headers.get('X-REQUEST-ID', 'noId')
+        task = current_app.celery_app.send_task('gateway.delete', [username, txn_id])
         resp_data['content'] = {'task-id': task.id}
         resp = Response(ujson.dumps(resp_data))
         resp.status_code = 202

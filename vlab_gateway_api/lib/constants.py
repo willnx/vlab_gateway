@@ -23,6 +23,7 @@ DEFINED = OrderedDict([
             ('VLAB_IPAM_ADMIN_PW', environ.get('VLAB_IPAM_ADMIN_PW', "I'm a little tea pot")),
             ('VLAB_IPAM_KEY', environ.get('VLAB_IPAM_KEY', 'bGfKJfkoAPcvG3dORQuWCBXbGLtl6L9_iSfaKfaLEHY=')),
             ('VLAB_IPAM_BROKER', environ.get('VLAB_IPAM_BROKER', 'localhost:9092')),
+            ('VLAB_VERIFY_TOKEN', environ.get('VLAB_VERIFY_TOKEN', False)),
           ])
 
 Constants = namedtuple('Constants', list(DEFINED.keys()))

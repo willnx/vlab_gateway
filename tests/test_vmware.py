@@ -144,7 +144,7 @@ class TestVMware(unittest.TestCase):
         fake_result.exitCode = 1
         fake_run_command.side_effect = [fake_result, MagicMock(), MagicMock(),  MagicMock()]
 
-        result = vmware._setup_gateway(vcenter=fake_vcenter, the_vm=fake_vm, username='jane')
+        result = vmware._setup_gateway(vcenter=fake_vcenter, the_vm=fake_vm, username='jane', gateway_version='1.0.0')
 
         self.assertTrue(result is None)
 
