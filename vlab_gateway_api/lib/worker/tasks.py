@@ -51,7 +51,7 @@ def create(self, username, wan, lan, txn_id):
     resp = {'content' : {}, 'error': None, 'params': {}}
     try:
         logger.info('Task starting')
-        resp['content'] = vmware.create_gateway(username, wan, lan)
+        resp['content'] = vmware.create_gateway(username, wan, lan, logger)
     except ValueError as doh:
         logger.error('Task failed: {}'.format(doh))
         resp['error'] = '{}'.format(doh)
@@ -72,7 +72,7 @@ def delete(self, username, txn_id):
     resp = {'content' : {}, 'error': None, 'params': {}}
     try:
         logger.info('Task starting')
-        info = vmware.delete_gateway(username)
+        info = vmware.delete_gateway(username, logger)
     except ValueError as doh:
         logger.error('Task failed: {}'.format(doh))
         resp['error'] = '{}'.format(doh)

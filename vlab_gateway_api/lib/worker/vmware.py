@@ -11,9 +11,6 @@ from vlab_inf_common.vmware import vCenter, Ova, vim, virtual_machine, consume_t
 from vlab_gateway_api.lib import const
 
 
-logger = get_task_logger(__name__)
-logger.setLevel(const.VLAB_GATEWAY_LOG_LEVEL.upper())
-
 COMPONENT_NAME='defaultGateway'
 
 
@@ -36,7 +33,7 @@ def show_gateway(username):
     return info
 
 
-def create_gateway(username, wan, lan, image_name='defaultgateway-IPAM.ova'):
+def create_gateway(username, wan, lan, logger, image_name='defaultgateway-IPAM.ova'):
     """Deploy the defaultGateway from an OVA
 
     :Returns: None
@@ -66,7 +63,7 @@ def create_gateway(username, wan, lan, image_name='defaultgateway-IPAM.ova'):
         return virtual_machine.get_info(vcenter, the_vm)
 
 
-def delete_gateway(username):
+def delete_gateway(username, logger):
     """Unregister and destroy the defaultGateway virtual machine
 
     :Returns: None
@@ -155,7 +152,7 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version):
 
     # Fix the env var for the log_sender
     cmd2 = '/usr/bin/sudo'
-    args2 = "/bin/sed -i -e 's/VLAB_LOG_TARGET=localhost:9092/VLAB_LOG_TARGET={}'".format(const.VLAB_IPAM_BROKER)
+    args2 = "/bin/sed -i -e 's/VLAB_LOG_TARGET=localhost:9092/VLAB_LOG_TARGET={}' /etc/environment".format(const.VLAB_IPAM_BROKER)
     result2 = virtual_machine.run_command(vcenter,
                                           the_vm,
                                           cmd2,
@@ -170,10 +167,10 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version):
     args3 = "/bin/echo '{}' > /etc/vlab/log_sender.key".format(const.VLAB_IPAM_KEY)
     result3 = virtual_machine.run_command(vcenter,
                                           the_vm,
-                                          cmd2,
+                                          cmd3,
                                           user=const.VLAB_IPAM_ADMIN,
                                           password=const.VLAB_IPAM_ADMIN_PW,
-                                          arguments=args2)
+                                          arguments=args3)
     if result3.exitCode:
         logger.error('Failed to set IPAM encryption key')
 
@@ -182,10 +179,10 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version):
     args4 = '/bin/systemctl restart vlab-log-sender'
     result4 = virtual_machine.run_command(vcenter,
                                           the_vm,
-                                          cmd2,
+                                          cmd4,
                                           user=const.VLAB_IPAM_ADMIN,
                                           password=const.VLAB_IPAM_ADMIN_PW,
-                                          arguments=args2)
+                                          arguments=args4)
     if result4.exitCode:
         logger.error('Failed to restart vlab-log-sender')
 
