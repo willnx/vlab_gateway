@@ -47,10 +47,12 @@ class TestVMware(unittest.TestCase):
     def test_create_gateway(self, fake_vCenter, fake_create_network_map, fake_deploy_from_ova, fake_get_info, fake_setup_gateway, fake_Ova):
         """``create_gateway`` returns the new gateway's info when everything works"""
         fake_get_info.return_value = {'worked' : True}
+        fake_logger = MagicMock()
 
         output = vmware.create_gateway(username='alice',
                                        wan='someWAN',
-                                       lan='someLAN')
+                                       lan='someLAN',
+                                       logger=fake_logger)
         expected = {'worked': True}
 
         self.assertEqual(output, expected)
@@ -60,13 +62,14 @@ class TestVMware(unittest.TestCase):
     @patch.object(vmware, 'vCenter')
     def test_delete_gateway(self, fake_vCenter, fake_power, fake_consume_task):
         """``delete_gateway`` powers off the VM then deletes it"""
+        fake_logger = MagicMock()
         fake_vm = MagicMock()
         fake_vm.name = 'defaultGateway'
         fake_folder = MagicMock()
         fake_folder.childEntity = [fake_vm]
         fake_vCenter.return_value.__enter__.return_value.get_by_name.return_value = fake_folder
 
-        vmware.delete_gateway(username='alice')
+        vmware.delete_gateway(username='alice', logger=fake_logger)
 
         self.assertTrue(fake_power.called)
         self.assertTrue(fake_vm.Destroy_Task.called)
