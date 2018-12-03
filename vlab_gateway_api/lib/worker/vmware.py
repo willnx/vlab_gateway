@@ -5,7 +5,6 @@ import random
 import os.path
 
 import ujson
-from celery.utils.log import get_task_logger
 from vlab_inf_common.vmware import vCenter, Ova, vim, virtual_machine, consume_task
 
 from vlab_gateway_api.lib import const
@@ -49,17 +48,20 @@ def create_gateway(username, wan, lan, logger, image_name='defaultgateway-IPAM.o
 
     :param image_name: The of the OVA to deploy
     :type image_name: String
+
+    :param logger: An object for logging messages
+    :type logger: logging.LoggerAdapter
     """
     with vCenter(host=const.INF_VCENTER_SERVER, user=const.INF_VCENTER_USER, \
                  password=const.INF_VCENTER_PASSWORD) as vcenter:
         ova = Ova(os.path.join(const.VLAB_GATEWAY_IMAGES_DIR, image_name))
         try:
-            network_map = _create_network_map(vcenter, ova, wan, lan)
+            network_map = _create_network_map(vcenter, ova, wan, lan, logger)
             the_vm = virtual_machine.deploy_from_ova(vcenter, ova, network_map,
                                                      username, COMPONENT_NAME, logger)
         finally:
             ova.close()
-        _setup_gateway(vcenter, the_vm, username, gateway_version='1.0.0')
+        _setup_gateway(vcenter, the_vm, username, gateway_version='1.0.0', logger=logger)
         return virtual_machine.get_info(vcenter, the_vm)
 
 
@@ -70,6 +72,9 @@ def delete_gateway(username, logger):
 
     :param username: The user who wants to delete their defaultGateway
     :type username: String
+
+    :param logger: An object for logging messages
+    :type logger: logging.LoggerAdapter
     """
     with vCenter(host=const.INF_VCENTER_SERVER, user=const.INF_VCENTER_USER, \
                  password=const.INF_VCENTER_PASSWORD) as vcenter:
@@ -83,7 +88,7 @@ def delete_gateway(username, logger):
                 consume_task(delete_task)
 
 
-def _create_network_map(vcenter, ova, wan, lan):
+def _create_network_map(vcenter, ova, wan, lan, logger):
     """Map the OVA networks to available networks in vCenter
 
     :Returns: List
@@ -99,6 +104,9 @@ def _create_network_map(vcenter, ova, wan, lan):
 
     :param lan: The name of the network to use in vCenter for the LAN network
     :type lan: String
+
+    :param logger: An object for logging messages
+    :type logger: logging.LoggerAdapter
     """
     network_map = []
     ova_networks = ova.networks
@@ -127,7 +135,7 @@ def _create_network_map(vcenter, ova, wan, lan):
     return network_map
 
 
-def _setup_gateway(vcenter, the_vm, username, gateway_version):
+def _setup_gateway(vcenter, the_vm, username, gateway_version, logger):
     """Initialize the new gateway for the user
 
     :Returns: None
@@ -138,6 +146,7 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version):
     :param the_vm: The new gateway
     :type the_vm: vim.VirtualMachine
     """
+    time.sleep(120) # Let the VM fully boot
     cmd1 = '/usr/bin/sudo'
     the_hostname = '{}.vlab.{}'.format(username, const.VLAB_DOMAIN)
     args1 = '/usr/bin/hostnamectl set-hostname {}'.format(the_hostname)
@@ -152,7 +161,7 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version):
 
     # Fix the env var for the log_sender
     cmd2 = '/usr/bin/sudo'
-    args2 = "/bin/sed -i -e 's/VLAB_LOG_TARGET=localhost:9092/VLAB_LOG_TARGET={}' /etc/environment".format(const.VLAB_IPAM_BROKER)
+    args2 = "/bin/sed -i -e 's/VLAB_LOG_TARGET=localhost:9092/VLAB_LOG_TARGET={}/g' /etc/environment".format(const.VLAB_IPAM_BROKER)
     result2 = virtual_machine.run_command(vcenter,
                                           the_vm,
                                           cmd2,
@@ -163,8 +172,8 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version):
         logger.error('Failed to set IPAM log-sender address')
 
     # Set the encryption key for log_sender
-    cmd3 = 'usr/bin/sudo'
-    args3 = "/bin/echo '{}' > /etc/vlab/log_sender.key".format(const.VLAB_IPAM_KEY)
+    cmd3 = '/usr/bin/sudo'
+    args3 = "/bin/sed -i -e 's/changeME/{}/g' /etc/vlab/log_sender.key".format(const.VLAB_IPAM_KEY)
     result3 = virtual_machine.run_command(vcenter,
                                           the_vm,
                                           cmd3,
@@ -173,6 +182,8 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version):
                                           arguments=args3)
     if result3.exitCode:
         logger.error('Failed to set IPAM encryption key')
+        logger.error('CMD: {} {}'.format(cmd3, args3))
+        logger.error('Result: \n{}'.format(result3))
 
     # Restart log sender; should work now
     cmd4= '/usr/bin/sudo'
@@ -186,13 +197,9 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version):
     if result4.exitCode:
         logger.error('Failed to restart vlab-log-sender')
 
-
-    spec = vim.vm.ConfigSpec()
-    spec_info = {'component': 'defaultGateway',
+    meta_data = {'component': 'defaultGateway',
                  'created': time.time(),
                  'version': gateway_version,
                  'configured': True,
                  'generation': 1}
-    spec.annotation = ujson.dumps(spec_info)
-    task = the_vm.ReconfigVM_Task(spec)
-    consume_task(task)
+    virtual_machine.set_meta(the_vm, meta_data)

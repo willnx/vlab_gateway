@@ -20,6 +20,9 @@ def show(self, username, txn_id):
 
     :param username: The name of the user who wants info about their default gateway
     :type username: String
+
+    :param txn_id: A unique string supplied by the client to track the call through logs
+    :type txn_id: String
     """
     logger = get_task_logger(txn_id=txn_id, task_id=self.request.id, loglevel=const.VLAB_GATEWAY_LOG_LEVEL.upper())
     resp = {'content' : {}, 'error': None, 'params': {}}
@@ -46,6 +49,9 @@ def create(self, username, wan, lan, txn_id):
 
     :param network: The name of the network that the jumpbox connects to.
     :type network: String
+
+    :param txn_id: A unique string supplied by the client to track the call through logs
+    :type txn_id: String
     """
     logger = get_task_logger(txn_id=txn_id, task_id=self.request.id, loglevel=const.VLAB_GATEWAY_LOG_LEVEL.upper())
     resp = {'content' : {}, 'error': None, 'params': {}}
@@ -67,6 +73,9 @@ def delete(self, username, txn_id):
 
     :param username: The name of the user who wants to create a new default gateway
     :type username: String
+
+    :param txn_id: A unique string supplied by the client to track the call through logs
+    :type txn_id: String
     """
     logger = get_task_logger(txn_id=txn_id, task_id=self.request.id, loglevel=const.VLAB_GATEWAY_LOG_LEVEL.upper())
     resp = {'content' : {}, 'error': None, 'params': {}}
