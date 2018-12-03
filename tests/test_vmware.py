@@ -76,6 +76,7 @@ class TestVMware(unittest.TestCase):
 
     def test_create_network_map(self):
         """``_create_network_map`` returns a List when everything works as expected"""
+        fake_logger = MagicMock()
         fake_ova = MagicMock()
         fake_ova.networks = ['wan', 'lan']
         fake_vcenter = MagicMock()
@@ -86,12 +87,14 @@ class TestVMware(unittest.TestCase):
         output = vmware._create_network_map(vcenter=fake_vcenter,
                                             ova=fake_ova,
                                             wan='someWAN',
-                                            lan='someLAN')
+                                            lan='someLAN',
+                                            logger=fake_logger)
 
         self.assertTrue(isinstance(output, list))
 
     def test_create_network_map_bad_wan(self):
         """``_create_network_map`` raises ValueError when the supplied WAN doesn't exist"""
+        fake_logger = MagicMock()
         fake_ova = MagicMock()
         fake_ova.networks = ['wan', 'lan']
         fake_vcenter = MagicMock()
@@ -103,11 +106,13 @@ class TestVMware(unittest.TestCase):
             vmware._create_network_map(vcenter=fake_vcenter,
                                         ova=fake_ova,
                                         wan='dohWAN',
-                                        lan='someLAN')
+                                        lan='someLAN',
+                                        logger=fake_logger)
 
 
     def test_create_network_map_bad_lan(self):
         """``_create_network_map`` raises ValueError when the supplied LAN doesn't exist"""
+        fake_logger = MagicMock()
         fake_ova = MagicMock()
         fake_ova.networks = ['wan', 'lan']
         fake_vcenter = MagicMock()
@@ -119,10 +124,12 @@ class TestVMware(unittest.TestCase):
             vmware._create_network_map(vcenter=fake_vcenter,
                                         ova=fake_ova,
                                         wan='someWAN',
-                                        lan='dohLAN')
+                                        lan='dohLAN',
+                                        logger=fake_logger)
 
     def test_create_network_map_bad_ova(self):
         """``_create_network_map`` raises RuntimeError when the supplied OVA has unexpected networks defined"""
+        fake_logger = MagicMock()
         fake_ova = MagicMock()
         fake_ova.networks = ['wan', 'lan', 'doh']
         fake_vcenter = MagicMock()
@@ -134,20 +141,26 @@ class TestVMware(unittest.TestCase):
             vmware._create_network_map(vcenter=fake_vcenter,
                                         ova=fake_ova,
                                         wan='someWAN',
-                                        lan='someLAN')
+                                        lan='someLAN',
+                                        logger=fake_logger)
 
-    @patch.object(vmware, 'consume_task')
+    @patch.object(vmware.virtual_machine, 'set_meta')
     @patch.object(vmware.time, 'sleep') # so unittests run faster
     @patch.object(vmware.virtual_machine, 'run_command')
-    def test_setup_gateway_returns_none(self, fake_run_command, fake_sleep, fake_consume_task):
+    def test_setup_gateway_returns_none(self, fake_run_command, fake_sleep, fake_set_meta):
         """``_setup_gateway`` returns None"""
+        fake_logger = MagicMock()
         fake_vcenter = MagicMock()
         fake_vm = MagicMock()
         fake_result = MagicMock()
         fake_result.exitCode = 1
         fake_run_command.side_effect = [fake_result, MagicMock(), MagicMock(),  MagicMock()]
 
-        result = vmware._setup_gateway(vcenter=fake_vcenter, the_vm=fake_vm, username='jane', gateway_version='1.0.0')
+        result = vmware._setup_gateway(vcenter=fake_vcenter,
+                                       the_vm=fake_vm,
+                                       username='jane',
+                                       gateway_version='1.0.0',
+                                       logger=fake_logger)
 
         self.assertTrue(result is None)
 
