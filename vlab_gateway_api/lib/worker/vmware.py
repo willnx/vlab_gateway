@@ -197,9 +197,45 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version, logger):
     if result4.exitCode:
         logger.error('Failed to restart vlab-log-sender')
 
+    cmd5 = '/usr/bin/sudo'
+    args5 = "/bin/sed -i -e 's/VLAB_URL=https:\/\/localhost/VLAB_LOG_TARGET={}/g' /etc/environment".format(const.VLAB_URL.replace('/', '\/'))
+    result5 = virtual_machine.run_command(vcenter,
+                                          the_vm,
+                                          cmd5,
+                                          user=const.VLAB_IPAM_ADMIN,
+                                          password=const.VLAB_IPAM_ADMIN_PW,
+                                          arguments=args5)
+    if result5.exitCode:
+        logger.error('Failed to set VLAB_URL environment variable')
+
+
+    cmd6 = '/usr/bin/sudo'
+    args6 = "/bin/sed -i -e 's/PRODUCTION=false/PRODUCTION=beta/g' /etc/environment"
+    result6 = virtual_machine.run_command(vcenter,
+                                          the_vm,
+                                          cmd6,
+                                          user=const.VLAB_IPAM_ADMIN,
+                                          password=const.VLAB_IPAM_ADMIN_PW,
+                                          arguments=args6)
+    if result6.exitCode:
+        logger.error('Failed to set PRODUCTION environment variable')
+
+    cmd7 = '/usr/bin/sudo'
+    args7 = '/sbin/reboot'
+    result7 = virtual_machine.run_command(vcenter,
+                                          the_vm,
+                                          cmd6,
+                                          user=const.VLAB_IPAM_ADMIN,
+                                          password=const.VLAB_IPAM_ADMIN_PW,
+                                          arguments=args7,
+                                          one_shot=True)
+    if result7.exitCode:
+        logger.error('Failed to reboot IPAM server')
+
     meta_data = {'component': 'defaultGateway',
                  'created': time.time(),
                  'version': gateway_version,
                  'configured': True,
                  'generation': 1}
     virtual_machine.set_meta(the_vm, meta_data)
+    time.sleep(60) # Give the box time to power cycles
