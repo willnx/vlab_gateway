@@ -198,7 +198,7 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version, logger):
         logger.error('Failed to restart vlab-log-sender')
 
     cmd5 = '/usr/bin/sudo'
-    args5 = "/bin/sed -i -e 's/VLAB_URL=https:\/\/localhost/VLAB_LOG_TARGET={}/g' /etc/environment".format(const.VLAB_URL.replace('/', '\/'))
+    args5 = "/bin/sed -i -e 's/VLAB_URL=https:\/\/localhost/VLAB_URL={}/g' /etc/environment".format(const.VLAB_URL.replace('/', '\/'))
     result5 = virtual_machine.run_command(vcenter,
                                           the_vm,
                                           cmd5,
