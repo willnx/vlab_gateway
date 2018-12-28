@@ -224,7 +224,7 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version, logger):
     args7 = '/sbin/reboot'
     result7 = virtual_machine.run_command(vcenter,
                                           the_vm,
-                                          cmd6,
+                                          cmd7,
                                           user=const.VLAB_IPAM_ADMIN,
                                           password=const.VLAB_IPAM_ADMIN_PW,
                                           arguments=args7,
