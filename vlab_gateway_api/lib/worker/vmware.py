@@ -62,7 +62,7 @@ def create_gateway(username, wan, lan, logger, image_name='defaultgateway-IPAM.o
         finally:
             ova.close()
         _setup_gateway(vcenter, the_vm, username, gateway_version='1.0.0', logger=logger)
-        return virtual_machine.get_info(vcenter, the_vm)
+        return virtual_machine.get_info(vcenter, the_vm, ensure_ip=True)
 
 
 def delete_gateway(username, logger):
@@ -224,7 +224,7 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version, logger):
     args7 = '/sbin/reboot'
     result7 = virtual_machine.run_command(vcenter,
                                           the_vm,
-                                          cmd6,
+                                          cmd7,
                                           user=const.VLAB_IPAM_ADMIN,
                                           password=const.VLAB_IPAM_ADMIN_PW,
                                           arguments=args7,
