@@ -221,15 +221,26 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version, logger):
         logger.error('Failed to set PRODUCTION environment variable')
 
     cmd7 = '/usr/bin/sudo'
-    args7 = '/sbin/reboot'
+    args7 = "/bin/sed -i -e 's/1.us.pool.ntp.org/{}/g' /etc/chrony/chrony.conf".format(const.VLAB_URL.replace('https://', '').replace('http://', ''))
     result7 = virtual_machine.run_command(vcenter,
                                           the_vm,
                                           cmd7,
                                           user=const.VLAB_IPAM_ADMIN,
                                           password=const.VLAB_IPAM_ADMIN_PW,
-                                          arguments=args7,
-                                          one_shot=True)
+                                          arguments=args7)
     if result7.exitCode:
+        logger.error('Failed to set NTP server')
+
+    cmd8 = '/usr/bin/sudo'
+    args8 = '/sbin/reboot'
+    result8 = virtual_machine.run_command(vcenter,
+                                          the_vm,
+                                          cmd8,
+                                          user=const.VLAB_IPAM_ADMIN,
+                                          password=const.VLAB_IPAM_ADMIN_PW,
+                                          arguments=args8,
+                                          one_shot=True)
+    if result8.exitCode:
         logger.error('Failed to reboot IPAM server')
 
     meta_data = {'component': 'defaultGateway',
