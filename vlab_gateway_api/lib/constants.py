@@ -24,6 +24,7 @@ DEFINED = OrderedDict([
             ('VLAB_IPAM_KEY', environ.get('VLAB_IPAM_KEY', 'bGfKJfkoAPcvG3dORQuWCBXbGLtl6L9_iSfaKfaLEHY=')),
             ('VLAB_IPAM_BROKER', environ.get('VLAB_IPAM_BROKER', 'localhost:9092')),
             ('VLAB_VERIFY_TOKEN', environ.get('VLAB_VERIFY_TOKEN', False)),
+            ('VLAB_DDNS_KEY', environ.get('VLAB_DDNS_KEY', 'aabbcc')),
           ])
 
 Constants = namedtuple('Constants', list(DEFINED.keys()))
