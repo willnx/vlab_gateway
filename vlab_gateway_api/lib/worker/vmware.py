@@ -252,16 +252,42 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version, logger):
     if result9.exitCode:
         logger.error('Failed to configure DNS forwarder')
 
+    # *MUST* happen after setting up the hostname otherwise the salt-minion will
+    # use the default hostname when registering with the salt-master
     cmd10 = '/usr/bin/sudo'
-    args10 = '/sbin/reboot'
+    args10 = "/bin/systemctl enable salt-minion.service"
     result10 = virtual_machine.run_command(vcenter,
                                           the_vm,
                                           cmd10,
                                           user=const.VLAB_IPAM_ADMIN,
                                           password=const.VLAB_IPAM_ADMIN_PW,
-                                          arguments=args10,
-                                          one_shot=True)
+                                          arguments=args10)
     if result10.exitCode:
+        logger.error('Failed to enable Config Mgmt Software')
+
+
+    cmd11 = '/usr/bin/sudo'
+    args11 = "/bin/sed -i -e 's/#master: salt/master: {}/g' /etc/salt/minion".format(const.VLAB_URL.replace('https://', '').replace('http://', ''))
+    result11 = virtual_machine.run_command(vcenter,
+                                          the_vm,
+                                          cmd11,
+                                          user=const.VLAB_IPAM_ADMIN,
+                                          password=const.VLAB_IPAM_ADMIN_PW,
+                                          arguments=args11)
+    if result11.exitCode:
+        logger.error('Failed to configure Config Mgmt Software')
+
+
+    cmd12 = '/usr/bin/sudo'
+    args12 = '/sbin/reboot'
+    result12 = virtual_machine.run_command(vcenter,
+                                          the_vm,
+                                          cmd12,
+                                          user=const.VLAB_IPAM_ADMIN,
+                                          password=const.VLAB_IPAM_ADMIN_PW,
+                                          arguments=args12,
+                                          one_shot=True)
+    if result12.exitCode:
         logger.error('Failed to reboot IPAM server')
 
     meta_data = {'component': 'defaultGateway',
