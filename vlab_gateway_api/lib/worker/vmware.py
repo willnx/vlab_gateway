@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 """Business logic for backend worker tasks"""
 import time
+import socket
 import random
 import os.path
 
@@ -135,6 +136,18 @@ def _create_network_map(vcenter, ova, wan, lan, logger):
     return network_map
 
 
+def resolve_name(name):
+    """Resolve a DNS name into an IP address
+
+    :Returns: String
+
+    :param name: The FQDN to resolve
+    :type name: String
+    """
+    hostname, aliases, addr = socket.gethostbyname_ex(name)
+    return addr[0]
+
+
 def _setup_gateway(vcenter, the_vm, username, gateway_version, logger):
     """Initialize the new gateway for the user
 
@@ -147,6 +160,7 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version, logger):
     :type the_vm: vim.VirtualMachine
     """
     time.sleep(120) # Let the VM fully boot
+    vlab_ip = resolve_name(const.VLAB_URL.replace('https://', '').replace('http://', ''))
     cmd1 = '/usr/bin/sudo'
     args1 = '/usr/bin/hostnamectl set-hostname {}'.format(username)
     result1 = virtual_machine.run_command(vcenter,
@@ -220,7 +234,7 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version, logger):
         logger.error('Failed to set PRODUCTION environment variable')
 
     cmd7 = '/usr/bin/sudo'
-    args7 = "/bin/sed -i -e 's/1.us.pool.ntp.org/{}/g' /etc/chrony/chrony.conf".format(const.VLAB_URL.replace('https://', '').replace('http://', ''))
+    args7 = "/bin/sed -i -e 's/1.us.pool.ntp.org/{}/g' /etc/chrony/chrony.conf".format(vlab_ip)
     result7 = virtual_machine.run_command(vcenter,
                                           the_vm,
                                           cmd7,
@@ -242,7 +256,7 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version, logger):
         logger.error('Failed to configure DDNS settings')
 
     cmd9 = '/usr/bin/sudo'
-    args9 = "sed -i -e 's/8.8.8.8/{}/g' /etc/bind/named.conf".format(const.VLAB_URL.replace('https://', '').replace('http://', ''))
+    args9 = "sed -i -e 's/8.8.8.8/{}/g' /etc/bind/named.conf".format(vlab_ip)
     result9 = virtual_machine.run_command(vcenter,
                                           the_vm,
                                           cmd9,
@@ -267,7 +281,7 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version, logger):
 
 
     cmd11 = '/usr/bin/sudo'
-    args11 = "/bin/sed -i -e 's/#master: salt/master: {}/g' /etc/salt/minion".format(const.VLAB_URL.replace('https://', '').replace('http://', ''))
+    args11 = "/bin/sed -i -e 's/#master: salt/master: {}/g' /etc/salt/minion".format(vlab_ip)
     result11 = virtual_machine.run_command(vcenter,
                                           the_vm,
                                           cmd11,
