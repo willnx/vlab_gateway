@@ -148,8 +148,7 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version, logger):
     """
     time.sleep(120) # Let the VM fully boot
     cmd1 = '/usr/bin/sudo'
-    the_hostname = '{}.vlab.{}'.format(username, const.VLAB_DOMAIN)
-    args1 = '/usr/bin/hostnamectl set-hostname {}'.format(the_hostname)
+    args1 = '/usr/bin/hostnamectl set-hostname {}'.format(username)
     result1 = virtual_machine.run_command(vcenter,
                                           the_vm,
                                           cmd1,
@@ -157,11 +156,11 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version, logger):
                                           password=const.VLAB_IPAM_ADMIN_PW,
                                           arguments=args1)
     if result1.exitCode:
-        logger.error('Failed to set hostname to {}'.format(the_hostname))
+        logger.error('Failed to set hostname to {}'.format(username))
 
-    # Fix the env var for the log_sender
+    # Updating hostname fixes SPAM when SSH into box about "failure to resolve <host>"
     cmd2 = '/usr/bin/sudo'
-    args2 = "/bin/sed -i -e 's/VLAB_LOG_TARGET=localhost:9092/VLAB_LOG_TARGET={}/g' /etc/environment".format(const.VLAB_IPAM_BROKER)
+    args2 = "/bin/sed -i -e 's/ipam/{}/g' /etc/hosts".format(username)
     result2 = virtual_machine.run_command(vcenter,
                                           the_vm,
                                           cmd2,
@@ -171,9 +170,9 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version, logger):
     if result2.exitCode:
         logger.error('Failed to set IPAM log-sender address')
 
-    # Set the encryption key for log_sender
+    # Fix the env var for the log_sender
     cmd3 = '/usr/bin/sudo'
-    args3 = "/bin/sed -i -e 's/changeME/{}/g' /etc/vlab/log_sender.key".format(const.VLAB_IPAM_KEY)
+    args3 = "/bin/sed -i -e 's/VLAB_LOG_TARGET=localhost:9092/VLAB_LOG_TARGET={}/g' /etc/environment".format(const.VLAB_IPAM_BROKER)
     result3 = virtual_machine.run_command(vcenter,
                                           the_vm,
                                           cmd3,
@@ -181,13 +180,11 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version, logger):
                                           password=const.VLAB_IPAM_ADMIN_PW,
                                           arguments=args3)
     if result3.exitCode:
-        logger.error('Failed to set IPAM encryption key')
-        logger.error('CMD: {} {}'.format(cmd3, args3))
-        logger.error('Result: \n{}'.format(result3))
+        logger.error('Failed to set IPAM log-sender address')
 
-    # Restart log sender; should work now
-    cmd4= '/usr/bin/sudo'
-    args4 = '/bin/systemctl restart vlab-log-sender'
+    # Set the encryption key for log_sender
+    cmd4 = '/usr/bin/sudo'
+    args4 = "/bin/sed -i -e 's/changeME/{}/g' /etc/vlab/log_sender.key".format(const.VLAB_IPAM_KEY)
     result4 = virtual_machine.run_command(vcenter,
                                           the_vm,
                                           cmd4,
@@ -195,7 +192,9 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version, logger):
                                           password=const.VLAB_IPAM_ADMIN_PW,
                                           arguments=args4)
     if result4.exitCode:
-        logger.error('Failed to restart vlab-log-sender')
+        logger.error('Failed to set IPAM encryption key')
+        logger.error('CMD: {} {}'.format(cmd4, args4))
+        logger.error('Result: \n{}'.format(result4))
 
     cmd5 = '/usr/bin/sudo'
     args5 = "/bin/sed -i -e 's/VLAB_URL=https:\/\/localhost/VLAB_URL={}/g' /etc/environment".format(const.VLAB_URL.replace('/', '\/'))
@@ -243,15 +242,52 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version, logger):
         logger.error('Failed to configure DDNS settings')
 
     cmd9 = '/usr/bin/sudo'
-    args9 = '/sbin/reboot'
+    args9 = "sed -i -e 's/8.8.8.8/{}/g' /etc/bind/named.conf".format(const.VLAB_URL.replace('https://', '').replace('http://', ''))
     result9 = virtual_machine.run_command(vcenter,
                                           the_vm,
                                           cmd9,
                                           user=const.VLAB_IPAM_ADMIN,
                                           password=const.VLAB_IPAM_ADMIN_PW,
-                                          arguments=args9,
-                                          one_shot=True)
+                                          arguments=args9)
     if result9.exitCode:
+        logger.error('Failed to configure DNS forwarder')
+
+    # *MUST* happen after setting up the hostname otherwise the salt-minion will
+    # use the default hostname when registering with the salt-master
+    cmd10 = '/usr/bin/sudo'
+    args10 = "/bin/systemctl enable salt-minion.service"
+    result10 = virtual_machine.run_command(vcenter,
+                                          the_vm,
+                                          cmd10,
+                                          user=const.VLAB_IPAM_ADMIN,
+                                          password=const.VLAB_IPAM_ADMIN_PW,
+                                          arguments=args10)
+    if result10.exitCode:
+        logger.error('Failed to enable Config Mgmt Software')
+
+
+    cmd11 = '/usr/bin/sudo'
+    args11 = "/bin/sed -i -e 's/#master: salt/master: {}/g' /etc/salt/minion".format(const.VLAB_URL.replace('https://', '').replace('http://', ''))
+    result11 = virtual_machine.run_command(vcenter,
+                                          the_vm,
+                                          cmd11,
+                                          user=const.VLAB_IPAM_ADMIN,
+                                          password=const.VLAB_IPAM_ADMIN_PW,
+                                          arguments=args11)
+    if result11.exitCode:
+        logger.error('Failed to configure Config Mgmt Software')
+
+
+    cmd12 = '/usr/bin/sudo'
+    args12 = '/sbin/reboot'
+    result12 = virtual_machine.run_command(vcenter,
+                                          the_vm,
+                                          cmd12,
+                                          user=const.VLAB_IPAM_ADMIN,
+                                          password=const.VLAB_IPAM_ADMIN_PW,
+                                          arguments=args12,
+                                          one_shot=True)
+    if result12.exitCode:
         logger.error('Failed to reboot IPAM server')
 
     meta_data = {'component': 'defaultGateway',

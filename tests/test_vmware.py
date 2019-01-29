@@ -156,7 +156,8 @@ class TestVMware(unittest.TestCase):
         fake_result.exitCode = 1
         # one Mock for every setup cmd that gets ran
         fake_run_command.side_effect = [fake_result, MagicMock(), MagicMock(),
-                                        MagicMock(),  MagicMock(),  MagicMock(),
+                                        MagicMock(),  MagicMock(), MagicMock(),
+                                        MagicMock(), MagicMock(), MagicMock(),
                                         MagicMock(), MagicMock(), MagicMock()]
 
         result = vmware._setup_gateway(vcenter=fake_vcenter,
