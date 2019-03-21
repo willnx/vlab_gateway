@@ -182,7 +182,7 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version, logger):
                                           password=const.VLAB_IPAM_ADMIN_PW,
                                           arguments=args2)
     if result2.exitCode:
-        logger.error('Failed to set IPAM log-sender address')
+        logger.error('Failed to fix hostname SPAM')
 
     # Fix the env var for the log_sender
     cmd3 = '/usr/bin/sudo'
@@ -293,15 +293,26 @@ def _setup_gateway(vcenter, the_vm, username, gateway_version, logger):
 
 
     cmd12 = '/usr/bin/sudo'
-    args12 = '/sbin/reboot'
+    args12 = "/bin/sed -i -e 's/$ActionFileDefaultTemplate RSYSLOG_TraditionalFileFormat/#$ActionFileDefaultTemplate RSYSLOG_TraditionalFileFormat/g' /etc/rsyslog.conf"
     result12 = virtual_machine.run_command(vcenter,
                                           the_vm,
                                           cmd12,
                                           user=const.VLAB_IPAM_ADMIN,
                                           password=const.VLAB_IPAM_ADMIN_PW,
-                                          arguments=args12,
-                                          one_shot=True)
+                                          arguments=args12)
     if result12.exitCode:
+        logger.error('Failed to set kern.log timestamp format')
+
+    cmd13 = '/usr/bin/sudo'
+    args13 = '/sbin/reboot'
+    result13 = virtual_machine.run_command(vcenter,
+                                          the_vm,
+                                          cmd13,
+                                          user=const.VLAB_IPAM_ADMIN,
+                                          password=const.VLAB_IPAM_ADMIN_PW,
+                                          arguments=args13,
+                                          one_shot=True)
+    if result13.exitCode:
         logger.error('Failed to reboot IPAM server')
 
     meta_data = {'component': 'defaultGateway',
