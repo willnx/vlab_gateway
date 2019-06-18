@@ -97,5 +97,16 @@ class TestGatewayView(unittest.TestCase):
 
         self.assertEqual(task_id, expected)
 
+    def test_network(self):
+        """GatewayView - PUT on /api/2/inf/gateway/network returns a 404"""
+        resp = self.app.put('/api/2/inf/gateway/network',
+                            headers={'X-Auth': self.token})
+
+        status = resp.status_code
+        expected = 404
+
+        self.assertEqual(status, expected)
+
+
 if __name__ == '__main__':
     unittest.main()
