@@ -9,7 +9,7 @@ from setuptools import setup, find_packages
 setup(name="vlab-gateway-api",
       author="Nicholas Willhite",
       author_email='willnx84@gmail.com',
-      version='2019.06.19',
+      version='2019.06.24',
       packages=find_packages(),
       include_package_data=True,
       package_files={'vlab_gatewway_api' : ['app.ini']},
