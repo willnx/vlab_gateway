@@ -28,7 +28,7 @@ def show_gateway(username):
         folder = vcenter.get_by_name(name=username, vimtype=vim.Folder)
         for vm in folder.childEntity:
             if vm.name == COMPONENT_NAME:
-                info = virtual_machine.get_info(vcenter, vm)
+                info = virtual_machine.get_info(vcenter, vm, username)
                 break
     return info
 
@@ -63,7 +63,7 @@ def create_gateway(username, wan, lan, logger, image_name='defaultgateway-IPAM.o
         finally:
             ova.close()
         _setup_gateway(vcenter, the_vm, username, gateway_version='1.0.0', logger=logger)
-        return virtual_machine.get_info(vcenter, the_vm, ensure_ip=True)
+        return virtual_machine.get_info(vcenter, the_vm, username, ensure_ip=True)
 
 
 def delete_gateway(username, logger):
