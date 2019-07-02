@@ -55,7 +55,7 @@ class GatewayView(TaskView):
         """Create a new gateway"""
         username = kwargs['token']['username']
         resp_data = {'user' : username}
-        wan = username, kwargs['body']['wan']
+        wan = kwargs['body']['wan']
         lan = '{}_{}'.format(username, kwargs['body']['lan'])
         txn_id = request.headers.get('X-REQUEST-ID', 'noId')
         task = current_app.celery_app.send_task('gateway.create', [username, wan, lan, txn_id])
